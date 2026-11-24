@@ -1,0 +1,651 @@
+ ▐▛███▛█   Claude Code v2.1.327
+▝▜██████▀  Sonnet 5.5 · Claude Team
+ ▝▝   ▝▝   ~\Desktop\ai-practioner-ev
+
+
+❯ Start by:                                                                     
+  1. Installing dependencies.                                                   
+  2. Verifying that better-sqlite3 works on this Windows machine.               
+  3. Creating Vitest tests from all acceptance criteria.                        
+  4. Running the tests and confirming they fail initially.                      
+  5. Implementing TypeScript modules incrementally.                             
+  6. Running the full test suite after each major module.                       
+     Important:                                                                 
+  - Preserve all 32 confirmed decisions and the four specification corrections. 
+  - Do not skip tests, weaken acceptance criteria, or silently change           
+  requirements.                                                                 
+  - Keep the Gmail integration strictly draft-only. Never send emails.          
+  - Do not start implementation if the specification corrections are            
+  incomplete.                                                                   
+  - If dependency installation or native module compilation fails, stop and     
+  report the exact error before attempting workarounds.                         
+    Do not commit or push anything.                                             
+                                                                                
+   i will proceed with this prompt                                              
+`
+● I'll start by checking the current state of the project: the specs, the
+  decisions, and whether the four corrections are in place.
+
+  Searched for 1 pattern, ran 1 shell command · 1 failed (ctrl+o to expand)
+
+● The project is further along than expected, with node_modules, five source
+  modules and four test files already in place. Checking the specs and decisions
+  next. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The prompt's count of 32 decisions doesn't match specs/decisions.md, which
+  runs to D34, and I can't find the four specification corrections anywhere. I'm
+  doing the safe environment setup now, then reading the decisions file
+  closely. · summary
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● The four corrections are logged as D6, D23, D33 and D34, which explains the
+  32-versus-34 gap. Next I'm checking that the specs reflect them and running
+  the better-sqlite3 check. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All four spec corrections are in, better-sqlite3 loads and runs on SQLite
+  3.54.1, and npm installed with zero vulnerabilities. Next I'll check the
+  existing test suite and find which acceptance criteria still have no tests. 
+  · summary
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Typecheck passes and 158 tests pass across four files, but 128 of the 191 spec
+  ids still lack tests for the storage, ingest, list, done, followup, report
+  and CLI layers. I'm reading the remaining specs and existing code before
+  writing those tests. · summary
+
+  Read 5 files (ctrl+o to expand)
+
+● That covers the specs. I'll read the existing source and one test file so the
+  new modules match their interfaces and conventions.
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Before designing the storage layer I need to know how the roster behaves
+  across ingests, since owner resolution depends on it. Reading specs 02 and 03.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I now have what I need for design. One check before writing tests is which
+  spec ids are already covered, so I don't duplicate them.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Many spec IDs only look uncovered because existing tests cite ranges like
+  "DAT-10..19". I'm reading the Gmail skill files next, since the SKL and G-01
+  tests assert against them. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The skill files are already in place, so the SKL tests can check against them.
+  I'm reading several sample notes first, to get their real contents for the
+  integration tests. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I'll use absolute paths from here on, so nothing gets written into the
+  read-only notes/notes. I'm writing the tests first, starting with a shared
+  helper.
+
+● Write(tests\helpers.ts)
+  ⎿  Wrote 158 lines to tests\helpers.ts
+       1 /** Shared test helpers: temp workspaces, in-process CLI calls, 
+         crafted notes. Not a test file. */
+       2 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "n
+         ode:fs";
+       3 import { tmpdir } from "node:os";
+       4 import { join, resolve } from "node:path";
+       5 import { run } from "../src/cli.js";
+       6 
+       7 export const SAMPLE_NOTES = resolve(import.meta.dirname, "..", "
+         notes", "notes");
+     … +151 lines (ctrl+o to expand)
+
+● Before writing the extra date tests I need the exact shape extractDue returns.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Existing date tests cover DAT-01 and DAT-12 under table-row names, so I'm
+  adding explicit traceability tests for DAT-01, DAT-12 and DAT-20 plus the new
+  pure-module tests. · summary
+
+● Write(tests\dates-trace.test.ts)
+  ⎿  Wrote 47 lines to tests\dates-trace.test.ts
+       1 /** Traceability tests for spec 03 criteria that earlier tests o
+         nly covered inside table rows. */
+       2 import { describe, expect, it } from "vitest";
+       3 import { extractDue } from "../src/dates.js";
+       4 
+       5 describe("DAT-01 the last resolving phrase wins", () => {
+       6   it("DAT-01 'by 10%' is not a date, so the later 'by <date>' is
+          the due phrase", () => {
+       7     const r = extractDue("cut cloud costs by 10% — proposal by 2
+         026-10-09", "2026-10-02");
+     … +40 lines (ctrl+o to expand)
+
+● Write(tests\ids.test.ts)
+  ⎿  Wrote 69 lines to tests\ids.test.ts
+       1 /** ID assignment on re-ingest (D33, DUP-25 to DUP-29b, DUP-65).
+          Pure function in dedup.ts. */
+       2 import { describe, expect, it } from "vitest";
+       3 import { assignIds } from "../src/dedup.js";
+       4 
+       5 describe("DUP-25 candidate ids", () => {
+       6   it("DUP-25 candidates are the distinct previous ids of the gro
+         up's mentions; null and repeats are ignored", () => {
+       7     const r = assignIds([[4, null, 4]], [4]);
+       8     expect(r.assignments).toEqual([{ id: 4, merged: [4] }]);
+     … +61 lines (ctrl+o to expand)
+
+● Write(tests\schemas.test.ts)
+  ⎿  Wrote 123 lines to tests\schemas.test.ts
+       1 /** Zod boundaries: people file (FUP-10..12), CLI option values 
+         (LST-11), JSON outputs (LST-10, FUP-30). */
+       2 import { describe, expect, it } from "vitest";
+       3 import { findPerson } from "../src/owners.js";
+       4 import {
+       5   DateOptionSchema,
+       6   FollowupOutputSchema,
+       7   ListOutputSchema,
+       8   StatusSchema,
+       9   parsePeople,
+     … +114 lines (ctrl+o to expand)
+
+● Now the unit tests for report formatting and the follow-up builder, using
+  hand-built items.
+
+● Write(tests\report.test.ts)
+  ⎿  Wrote 126 lines to tests\report.test.ts
+       1 /** Status model and list rendering (LST-01, LST-08, LST-10). Pu
+         re functions in report.ts. */
+       2 import { describe, expect, it } from "vitest";
+       3 import type { Item, OwnerSpec } from "../src/models.js";
+       4 import { classify, formatListTable, itemToJson, ownerLabel } fro
+         m "../src/report.js";
+       5 
+       6 const person = (name: string): OwnerSpec => ({ kind: "person", n
+         ame, candidates: [], group: null });
+       7 
+     … +119 lines (ctrl+o to expand)
+● Write(tests\followup.test.ts)
+  ⎿  Wrote 196 lines to tests\followup.test.ts
+       1 /** Follow-up draft preparation (spec 06), unit level. Pure func
+         tions in followup.ts. */
+       2 import { describe, expect, it } from "vitest";
+       3 import { buildFollowup } from "../src/followup.js";
+       4 import { FollowupOutputSchema } from "../src/schemas.js";
+       5 import type { Item, OwnerSpec } from "../src/models.js";
+       6 import { mkItem } from "./report.test.js";
+       7 
+       8 const AS_OF = "2026-03-10";
+       9 const person = (name: string): OwnerSpec => ({ kind: "person", n
+     … +188 lines (~9 KB) (ctrl+o to expand)
+
+● One mistake to fix: followup.test.ts imports mkItem from another test file,
+  which would register that file's tests twice. I'll move the factory into its
+  own module.
+
+● Write(tests\factories.ts)
+  ⎿  Wrote 18 lines to tests\factories.ts
+       1 /** Hand-built values for unit tests. Not a test file. */
+       2 import type { Item, OwnerSpec } from "../src/models.js";
+       3 
+       4 export const person = (name: string): OwnerSpec => ({ kind: "per
+         son", name, candidates: [], group: null });
+       5 
+       6 export const mkItem = (o: Partial<Item> & { id: number }): Item
+         => ({
+       7   owner: person("Anita Desai"),
+       8   task: "ship the report",
+     … +10 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Next is the largest piece: the crafted-fixture ingest tests, covering ING,
+  DUP, OWN, DAT-30/31 and the global rules.
+
+● Write(tests\ingest.test.ts)
+  ⎿  Wrote 759 lines to tests\ingest.test.ts
+      1 /** Ingest pipeline on crafted fixtures: specs 01 (re-ingest, D34
+        ), 02, 03 (DAT-30/31), 04 (D33) and G-rules. */
+      2 import Database from "better-sqlite3";
+      3 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+      4 import { join } from "node:path";
+      5 import { afterEach, describe, expect, it } from "vitest";
+      6 import { ingestFolder, openDb } from "../src/db.js";
+      7 import { parseNote } from "../src/parser.js";
+      8 import { IngestReportSchema } from "../src/schemas.js";
+      9 import { Workspace, cleanupAll, cli, noteText, type ListedItem }
+     … +751 lines (~34 KB) (ctrl+o to expand)
+
+● Update(tests\ingest.test.ts)
+  ⎿  Added 2 lines, removed 3 lines
+      625      expect(items[0]!.history).toHaveLength(3);
+      626      expect(rep.merged_items).toEqual([{ ids: [1, 2], into: 1 }
+           ]);
+      627      expect(rep.items.absorbed).toBe(1);
+      628 -    const text = (await ws.ingestText()).out;                 
+      629 -    expect(text).not.toContain("merged items"); // nothing lef
+          -t to merge on the next, unchanged run                         
+      630 -    ws.write("c.md", nC() + "\n"); // touch to force a changed
+          - note                                                         
+      628 +    // Nothing is left to merge on the next, unchanged run.   
+      629 +    expect((await ws.ingestText()).out).not.toContain("merged 
+          +items");                                                      
+      630    });
+      631 
+      632    it("DUP-29b the text report lists the merge as `merged items
+            #1, #2 into #1`", async () => {
+
+● Now the list and done tests, run against the crafted dataset with a pinned
+  as-of date.
+
+● Write(tests\list.test.ts)
+  ⎿  Wrote 240 lines to tests\list.test.ts
+       1 /** `list` and `done` (spec 05) against the crafted dataset in h
+         elpers.ts, as of 2026-03-10. */
+       2 import Database from "better-sqlite3";
+       3 import { join } from "node:path";
+       4 import { afterAll, afterEach, beforeAll, describe, expect, it }
+         from "vitest";
+       5 import { ListOutputSchema } from "../src/schemas.js";
+       6 import { Workspace, cleanupAll, cli, craftedWorkspace, type List
+         edItem } from "./helpers.js";
+       7 
+     … +233 lines (ctrl+o to expand)
+
+● Next are the CLI-level follow-up tests, covering the people file, the preview
+  output, read-only behaviour and the no-send guarantees.
+
+● Write(tests\followup-cli.test.ts)
+  ⎿  Wrote 184 lines to tests\followup-cli.test.ts
+       1 /** `followup` through the CLI (spec 06) on the crafted dataset,
+          as of 2026-03-10. */
+       2 import Database from "better-sqlite3";
+       3 import { writeFileSync } from "node:fs";
+       4 import { join } from "node:path";
+       5 import { afterAll, beforeAll, describe, expect, it } from "vites
+         t";
+       6 import { FollowupOutputSchema } from "../src/schemas.js";
+       7 import { PEOPLE_JSON, Workspace, cleanupAll, cli, craftedWorkspa
+         ce } from "./helpers.js";
+     … +177 lines (ctrl+o to expand)
+
+● Now the integration tests against the provided notes/notes folder. They only
+  read it and ingest into a temp database.
+
+● Write(tests\sample-notes.test.ts)
+  ⎿  Wrote 328 lines to tests\sample-notes.test.ts
+       1 /** Integration tests on the provided notes/notes folder (read-o
+         nly; ingested into a temp database). */
+       2 import Database from "better-sqlite3";
+       3 import { readdirSync } from "node:fs";
+       4 import { afterAll, beforeAll, describe, expect, it } from "vites
+         t";
+       5 import { groupMentions, ownerKey } from "../src/dedup.js";
+       6 import { SAMPLE_NOTES, Workspace, cleanupAll, cli, type ListedIt
+         em } from "./helpers.js";
+       7 
+     … +321 lines (ctrl+o to expand)
+
+● Last test file: the skill, no-send and source-scan checks (SKL-01 to SKL-06,
+  G-01, FUP-32, D19).
+
+● Write(tests\skill-and-safety.test.ts)
+  ⎿  Wrote 135 lines to tests\skill-and-safety.test.ts
+       1 /** Gmail skill contract (SKL-01..06, D19) and the no-send guara
+         ntee (G-01, FUP-32, D3). */
+       2 import { existsSync, readFileSync, readdirSync, statSync } from
+         "node:fs";
+       3 import { join, resolve } from "node:path";
+       4 import { describe, expect, it } from "vitest";
+       5 
+       6 const ROOT = resolve(import.meta.dirname, "..");
+       7 const SKILL = readFileSync(join(ROOT, ".claude", "skills", "acti
+         ontrack-followup", "SKILL.md"), "utf8");
+     … +128 lines (ctrl+o to expand)
+
+● All the tests are written. The next step is the failing run: I'll run the full
+  suite and confirm the new tests fail because the modules they need don't
+  exist yet.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Nine test files fail as expected and five pass, including the traceability
+  tests for DAT-01, DAT-12 and DAT-20 that dates.ts already satisfies. I'm now
+  implementing the shared types and the pure assignIds and findPerson functions,
+  running the suite after each module. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● assignIds and findPerson pass their tests. Now schemas.ts, the Zod boundary.
+
+● Write(src\schemas.ts)
+  ⎿  Wrote 141 lines to src\schemas.ts
+       1 /** Zod schemas for data crossing a boundary: CLI option values,
+          people.json and the JSON outputs. */
+       2 import { z } from "zod";
+       3 import { parseMeetingDate } from "./dates.js";
+       4 
+       5 // -------------------------------------------------------------
+         --- CLI option values (LST-11)
+       6 
+       7 export const StatusSchema = z.enum(["open", "done", "overdue"]);
+       8 export type StatusOption = z.infer<typeof StatusSchema>;
+     … +133 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Schemas pass. Before writing report.ts I'll check how daysBetween signs its
+  result.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● daysBetween returns to − from, so overdue days come from daysBetween(due, 
+  asOf). I noticed todayIso() uses local-time getters although CLAUDE.md
+  requires UTC (G-04), so I'm adding a test to pin that down before fixing it. 
+  · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● That is a genuine red test: the current code returns the local date. Fixing
+  todayIso to use UTC, then writing report.ts.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(src\report.ts)
+  ⎿  Wrote 132 lines to src\report.ts
+       1 /** Status model and text rendering for `list` and `ingest` (spe
+         cs 05 and 01). Pure functions. */
+       2 import { daysBetween } from "./dates.js";
+       3 import type { Item, OwnerSpec } from "./models.js";
+       4 import type { IngestReport, ListItemJson } from "./schemas.js";
+       5 
+       6 export type DisplayStatus = "open" | "overdue" | "done";
+       7 
+       8 /** LST-01: done, overdue (open and due before the as-of date) o
+         r open. */
+     … +124 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+● Now followup.ts, a pure draft builder with no I/O.
+
+● Write(src\followup.ts)
+  ⎿  Wrote 131 lines to src\followup.ts
+       1 /**
+       2  * Follow-up draft preparation (spec 06). Pure: items in, struct
+         ured draft data out.
+       3  * Nothing here sends mail or talks to Gmail; the skill creates
+         drafts from this output (D3, G-01).
+       4  */
+       5 import { findPerson } from "./owners.js";
+       6 import type { Item } from "./models.js";
+       7 import { classify, compareByDue } from "./report.js";
+       8 import type { Draft, FollowupOutput, People } from "./schemas.js
+     … +124 lines (~4 KB) (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● followup.ts passes all 20 unit tests, so I'm moving on to the dedup ordering
+  and state logic, then the parser. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The mid-file imports compile, but they're untidy. I'll move them to the top of
+  each file.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The earlier 158 tests are still green. Now db.ts: the schema, the ingest
+  transaction and the read and write queries.
+
+● Write(src\db.ts)
+  ⎿  Wrote 415 lines to src\db.ts
+       1 /**
+       2  * SQLite storage and the ingest pipeline (specs 00, 01, 04; dec
+         isions D14, D15, D16, D33, D34).
+       3  *
+       4  * Item state is derived: on every ingest all stored mentions ar
+         e regrouped (DUP-04), ids are reassigned by
+       5  * the lowest-surviving-id rule (DUP-25 to DUP-29), and each ite
+         m is re-derived from its mentions.
+       6  * A note is identified by its file name. IDs come from AUTOINCR
+         EMENT, so they are never reused (DUP-24).
+     … +409 lines (ctrl+o to expand)
+
+● One cleanup in markDone first: the latest-mention query is a clumsy string
+  replace, so I'll write it plainly.
+
+● Update(src\db.ts)
+  ⎿  Added 1 line, removed 1 line
+      140    if (!item) return { kind: "unknown" };
+      141    if (item.status === "done") return { kind: "already", item }
+           ;
+      142    const latest = db
+      143 -    .prepare(`select * from mentions where item_id = ? ${ORDER
+          -_MENTIONS} desc`.replace("order by meeting_date, source_file, 
+          -line_no, id desc", "order by meeting_date desc, source_file de
+          -sc, line_no desc, id desc"))                                  
+      143 +    .prepare("select * from mentions where item_id = ? order b
+          +y meeting_date desc, source_file desc, line_no desc, id desc l
+          +imit 1")                                                      
+      144      .get(id) as MentionRow | undefined;
+      145    const pos = latest ? posOf(mentionFromRow(latest)) : null;
+      146    db.prepare("update items set status = 'done', manual_done_af
+           ter = ? where id = ?").run(pos ? JSON.stringify(pos) : null, i
+           d);
+
+● Now cli.ts (Commander wiring, option validation, exit codes per D28) and the
+  bin.ts entry point.
+
+● Write(src\cli.ts)
+  ⎿  Wrote 257 lines to src\cli.ts
+       1 /**
+       2  * Commander wiring for the four commands (spec 00). `run(argv, 
+         io)` is in-process so tests can call it.
+       3  * Exit codes (D28): 0 ok, 1 not found or ambiguous, 2 usage or
+         config error. stdout for results, stderr for errors (G-05).
+       4  * Nothing here sends email or talks to Gmail (G-01).
+       5  */
+       6 import { Command, CommanderError } from "commander";
+       7 import { existsSync, readFileSync, statSync } from "node:fs";
+       8 import { resolve } from "node:path";
+     … +249 lines (ctrl+o to expand)
+
+● Write(src\bin.ts)
+  ⎿  Wrote 8 lines to src\bin.ts
+      1 #!/usr/bin/env node
+      2 /** Entry point: forwards the process arguments to run() and sets
+         the exit code. */
+      3 import { run } from "./cli.js";
+      4 
+      5 process.exitCode = await run(process.argv.slice(2), {
+      6   stdout: (text) => process.stdout.write(text),
+      7   stderr: (text) => process.stderr.write(text),
+      8 });
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Typecheck is clean. Now the full suite, to see where the ingest, list, done
+  and follow-up layers stand.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Nearly all tests pass (425 of 427), with DUP-41 and DUP-44 failing on the
+  sample data. I'm examining what that data actually contains before changing
+  anything. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Both test failures came from my queries using an as-of date of 2026-12-31,
+  which marks past-due open items as overdue, not from the merge logic. I'm
+  changing the tests to use an as-of date before the due dates, keeping their
+  assertions as strict as before. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● All 14 files and 427 tests pass, so I'm building the real binary and running
+  the CLI end to end on the sample notes next. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The built binary works end to end: 32 ingested, 3 skipped, 1 ignored, matching
+  ING-30. Now list, done and followup through the real binary.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The CLI's exit codes check out, and the done 1 "already done" reply is
+  expected because item 1 is already ticked in the 09-15 note. Next I'm running
+  final checks on spec coverage, the read-only sample data, and the working
+  tree. · summary
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Node on Windows resolves /tmp differently from Git Bash. I'll redo the
+  coverage check by reading the specs directly in Node.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● 190 of 191 acceptance criteria have a citing test; the gap is DUP-29, which
+  requires the merge survivor to keep the latest manual-done position. I'm
+  adding a test that tells "latest" apart from "lowest id" next. · summary
+
+● Update(tests\ingest.test.ts)
+  ⎿  Added 17 lines
+      681      expect(after[1]!.task).toBe("fix the pagination bug");
+      682    });
+      683 
+      684 +  it("DUP-29 the survivor keeps the LATEST manual_done_after a
+          +mong the merged items, not the lowest id's", async () => {    
+      685 +    const ws = new Workspace();                               
+      686 +    ws.write("a.md", nA());                                   
+      687 +    ws.write("c.md", nC());                                   
+      688 +    await ws.ingest(); // A = id 1, C = id 2                  
+      689 +    expect((await cli(["done", "1", "--db", ws.db])).code).toB
+          +e(0); // manual position: A                                   
+      690 +    expect((await cli(["done", "2", "--db", ws.db])).code).toB
+          +e(0); // manual position: C (later)                           
+      691 +    ws.write("b.md", nB());                                   
+      692 +    await ws.ingest(); // ids 1 and 2 merge into 1            
+      693 +    const items = await ws.items();                           
+      694 +    expect(items.map((i) => i.id)).toEqual([1]);              
+      695 +    // Had the survivor kept only id 1's position (A), the new
+          +er mention C would re-open it (DUP-21).                       
+      696 +    expect(items[0]!.status).toBe("done");                    
+      697 +    const stored = peek<{ manual_done_after: string }>(ws, "se
+          +lect manual_done_after from items where id = 1")[0]!.manual_do
+          +ne_after;                                                     
+      698 +    expect(JSON.parse(stored)).toMatchObject({ date: "2026-01-
+          +19", file: "c.md" });                                         
+      699 +  });                                                         
+      700 +                                                              
+      701    it("DUP-64 splitting: A keeps id 1 and C gets a new id (2 wh
+           en 2 was never issued)", async () => {
+      702      const ws = new Workspace();
+      703      ws.write("a.md", nA());
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The implementation is complete: all 191 acceptance criteria now have a test,
+  and the full suite passes (428 tests across 14 files). Typecheck and build are
+  clean, and I made no commits or pushes.
+
+  What I did, against your steps
+
+  1. Install: npm install finished clean with 0 vulnerabilities. Nothing failed,
+     so no workaround was needed.
+  2. better-sqlite3: it loads on this Windows machine and ran a create, insert
+     and select on SQLite 3.54.1.
+  3. Gate check: all four corrections are in the specs (D6, D23, D33, D34), so I
+     went ahead. You wrote "32 decisions" but the file has D1 to D34. That's 32
+     original decisions plus the two added by the corrections.
+  4. Tests first: I wrote the tests before the code. The first run had 9 files
+     failing, mostly because the modules didn't exist yet.
+  5. Implementation: schemas.ts, report.ts, followup.ts, db.ts, cli.ts and
+     bin.ts are new, with additions to dedup.ts, owners.ts, parser.ts and
+     models.ts. I ran the suite after each module.
+
+  I also ran the built CLI on the sample notes. It gives 32 ingested, 3 skipped
+  and 1 ignored, matching ING-30. list, done and followup behave as specified.
+
+  Things you should know
+
+  - The repo was further along than your prompt assumed. Four modules (parser,
+    owners, dates, dedup) and their 158 tests already existed and passed. I
+    built on them rather than redoing them.
+  - I changed existing code once. todayIso() used the local time zone, but
+    CLAUDE.md says dates are computed in UTC. A test now fails on the old code
+    and passes with the fix.
+  - I fixed two of my own tests. DUP-41 and DUP-44 failed because I checked
+    "open" using --as-of 2026-12-31, which displays any past-due item as
+    overdue. The code was right. I changed the as-of date in the test and left
+    the assertions as strict as before.
+  - Some tests never failed first. The DAT-01, DAT-12, DAT-20 and SKL tests pass
+    against existing code and skill files, so they are traceability tests
+    rather than red-then-green.
+  - I made a few choices the specs don't cover. I'd suggest turning these into P
+    items:
+    - A note is identified by its file name alone, so two folders with the same
+      file names would collide.
+    - The ingest --json report shape is my own (snake_case, in schemas.ts).
+    - Item counts for FUP-04 exclude done items.
+    - ingest re-reads every file in the folder each time, because roster-based
+      owner resolution (OWN-15) depends on all notes.
+
+  notes/notes is untouched: 36 files, none modified. CLAUDE.md still says
+  implementation is under way, so you may want to update that status line.
+
+✻ Worked for 19m 33s · done 5:36 PM
+※ recap: Goal: build actiontrack spec-first, and the implementation is now finished, with all 191 acceptance criteria tested and 428 tests passing, nothing committed. Next action: review the summary's four unspecified choices and decide whether to promote them to P items. (turn off recaps in /config)
+
+❯ /mcp                                                                          
+  ⎿  Signed in and connected to claude.ai Gmail.
+
+❯ Create a test Gmail draft using the Gmail MCP tool.                           
+                                                                                
+  To: dewansh.juwar@coditas.com                                                 
+  Subject: ActionTrack Integration Test                                         
+                                                                                
+  Body:                                                                         
+  Hello,                                                                        
+                                                                                
+  This is a test draft created through the ActionTrack Gmail integration.       
+                                                                                
+  Regards,                                                                      
+  ActionTrack                                                                   
+                                                                                
+  Rules:                                                                        
+  - Create a draft only.                                                        
+  - Never send this email.                                                      
+  - Do not use any alternative sending method.                                  
+  - Confirm whether Gmail successfully created the draft.                       
+
+  Called Gmail (ctrl+o to expand)
+
+● Gmail created the draft. It returned a draft id, which confirms it, and
+  nothing was sent.
+
+  - Draft id: r2705866984497380391
+  - To: dewansh.juwar@coditas.com
+  - Subject: ActionTrack Integration Test
+  - Body: exactly as you gave it, as plain text
+  - Link: https://mail.google.com/mail/?authuser=dewansh.juwar@coditas.com#all?c
+    ompose=thread-f:1882741867926379433%2Bmsg-a:r2705866984497380391
+
+  I used only the Gmail create_draft tool. I did not call any send, reply or
+  forward tool, and I did not use any other way to send. The draft is in your
+  Gmail Drafts folder, unsent, if you want to check it there.
+
+  I created this draft directly rather than through the actiontrack followup 
+  --json skill flow. It confirms that the Gmail connector is authenticated and
+  can create drafts. It does not exercise the CLI's output path. For that, run
+  the skill on a real owner, for example followup "Karan Joshi".
+
+✻ Churned for 39s · done 5:46 PM
+
+※ recap: We're building the actiontrack CLI spec-first. All 191 criteria now have tests and 428 pass, and the Gmail connector just created an unsent test draft. Next, run the follow-up skill on a real owner such as Karan Joshi to test the full draft flow. (turn off recaps in /config)
